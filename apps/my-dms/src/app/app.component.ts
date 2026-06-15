@@ -1,10 +1,14 @@
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { NxWelcomeComponent } from './nx-welcome.component';
+
+import { CoreModule, provideTranslations } from '@alfresco/adf-core';
 
 @Component({
   standalone: true,
-  imports: [NxWelcomeComponent, RouterModule],
+  imports: [ RouterModule, CoreModule],
+  providers: [
+    provideTranslations('app', 'assets/i18n')
+  ],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

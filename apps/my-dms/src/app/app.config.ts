@@ -1,10 +1,22 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ApplicationConfig, provideZoneChangeDetection,importProvidersFrom  } from '@angular/core';
 import { appRoutes } from './app.routes';
+import { CoreModule } from '@alfresco/adf-core';
+import { provideRouter, withHashLocation } from '@angular/router';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideAppConfig, provideCoreAuth, provideI18N } from '@alfresco/adf-core';
+
+
 
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(appRoutes),
-  ],
+   providers: [
+    provideAnimations(),
+    provideHttpClient(withInterceptorsFromDi()),
+    provideCoreAuth({ useHash: true }),
+    provideAppConfig(),
+    provideI18N({
+      assets: [['app', 'assets']]
+    }),
+    provideRouter(appRoutes, withHashLocation())
+  ]
 };

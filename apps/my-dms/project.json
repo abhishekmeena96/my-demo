@@ -7,23 +7,60 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:application",
+      "executor": "@angular-devkit/build-angular:browser",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/my-dms",
         "index": "apps/my-dms/src/index.html",
-        "browser": "apps/my-dms/src/main.ts",
+        "main": "apps/my-dms/src/main.ts",
         "polyfills": ["zone.js"],
         "tsConfig": "apps/my-dms/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
+
+
         "assets": [
-          {
-            "glob": "**/*",
-            "input": "apps/my-dms/public"
-          }
-        ],
-        "styles": ["apps/my-dms/src/styles.scss"],
-        "scripts": []
+        {
+          "glob": "**/*",
+          "input": "apps/my-dms/public"
+        },
+        "apps/my-dms/src/assets",
+        {
+          "glob": "app.config.json",
+          "input": "apps/my-dms/src",
+          "output": "/"
+        },
+        {
+          "glob": "**/*",
+          "input": "node_modules/@alfresco/adf-core/bundles/assets",
+          "output": "/assets"
+        },
+        {
+          "glob": "**/*",
+          "input": "node_modules/@alfresco/adf-content-services/bundles/assets",
+          "output": "/assets"
+        },
+        {
+          "glob": "openjpeg*",
+          "input": "node_modules/pdfjs-dist/wasm",
+          "output": "/wasm/"
+        },
+        {
+          "glob": "pdf.worker.min.mjs",
+          "input": "node_modules/pdfjs-dist/build",
+          "output": "/"
+        }
+      ],
+
+        "styles": [ 
+          "node_modules/pdfjs-dist/web/pdf_viewer.css",
+          "node_modules/katex/dist/katex.min.css",
+          "node_modules/prismjs/themes/prism-okaidia.css",
+          "apps/my-dms/src/styles.scss"],
+        "scripts": [
+          "node_modules/mermaid/dist/mermaid.min.js",
+          "node_modules/katex/dist/katex.min.js",
+          "node_modules/katex/dist/contrib/auto-render.min.js",
+          "node_modules/prismjs/prism.js"]
       },
       "configurations": {
         "production": {
@@ -49,8 +86,17 @@
       },
       "defaultConfiguration": "production"
     },
+
+    
     "serve": {
       "executor": "@angular-devkit/build-angular:dev-server",
+      "options": {
+        "buildTarget": "my-dms:build",
+        "port": 4200,
+        "open": true,
+        "disableHostCheck": true,
+        "proxyConfig": "apps/my-dms/proxy.conf.js"
+      },
       "configurations": {
         "production": {
           "buildTarget": "my-dms:build:production"
@@ -61,6 +107,12 @@
       },
       "defaultConfiguration": "development"
     },
+
+
+
+
+
+
     "extract-i18n": {
       "executor": "@angular-devkit/build-angular:extract-i18n",
       "options": {

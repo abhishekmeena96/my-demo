@@ -323,3 +323,269 @@ $env:NX_NO_CLOUD=1
 
 _Last updated: Project setup phase — workspace created, dependencies installed_
 _Next focus: Running app and building login page_
+
+
+---
+# important
+
+# npm vs npx vs ng vs nx
+
+Understanding these four tools is essential when working with Angular and NX projects.
+
+---
+
+# npm
+
+**Full Form:** Node Package Manager
+
+**Purpose:** Install and manage packages.
+
+### Common Uses
+
+```bash
+npm install
+npm install @angular/core
+npm run start
+```
+
+### Responsibilities
+
+* Install dependencies
+* Manage `package.json`
+* Manage `package-lock.json`
+* Run project scripts
+
+### Mental Model
+
+```text
+npm = Install & Manage Packages
+```
+
+---
+
+# npx
+
+**Full Form:** Node Package Executor
+
+**Purpose:** Run packages without installing them globally.
+
+### Common Uses
+
+```bash
+npx create-nx-workspace@latest my-dms
+npx prettier --write .
+```
+
+### Responsibilities
+
+* Execute packages temporarily
+* Avoid global installations
+* Useful for one-time commands
+
+### Mental Model
+
+```text
+npx = Run Package Without Installing Globally
+```
+
+---
+
+# ng
+
+**Full Form:** Angular CLI
+
+**Purpose:** Manage Angular applications.
+
+### Common Uses
+
+```bash
+ng new my-app
+ng generate component login
+ng serve
+ng build
+```
+
+### Responsibilities
+
+* Create Angular projects
+* Generate components and services
+* Run Angular applications
+* Build Angular applications
+
+### Mental Model
+
+```text
+ng = Angular Project Manager
+```
+
+---
+
+# nx
+
+**Full Form:** NX Build System
+
+**Purpose:** Manage monorepos and multiple projects.
+
+### Common Uses
+
+```bash
+nx serve my-dms
+nx build my-dms
+
+nx generate @nx/angular:component login
+
+nx graph
+
+nx run-many --target=build
+```
+
+### Responsibilities
+
+* Manage multiple applications
+* Manage shared libraries
+* Dependency tracking
+* Build optimization
+* Build caching
+* Workspace management
+
+### Mental Model
+
+```text
+nx = Monorepo Manager + Build System
+```
+
+---
+
+# Comparison Table
+
+| Feature                  | npm | npx | ng | nx |
+| ------------------------ | --- | --- | -- | -- |
+| Install packages         | ✅   | ❌   | ❌  | ❌  |
+| Run packages temporarily | ❌   | ✅   | ❌  | ❌  |
+| Create Angular apps      | ❌   | ❌   | ✅  | ✅  |
+| Generate components      | ❌   | ❌   | ✅  | ✅  |
+| Build Angular apps       | ❌   | ❌   | ✅  | ✅  |
+| Manage multiple apps     | ❌   | ❌   | ❌  | ✅  |
+| Manage libraries         | ❌   | ❌   | ❌  | ✅  |
+| Build caching            | ❌   | ❌   | ❌  | ✅  |
+| Monorepo support         | ❌   | ❌   | ❌  | ✅  |
+
+---
+
+# How They Work Together
+
+```text
+npm
+ └── Installs packages
+
+npx
+ └── Runs packages temporarily
+
+ng
+ └── Manages Angular applications
+
+nx
+ └── Manages entire monorepo workspace
+```
+
+---
+
+# Our Project Workflow
+
+### Create Workspace
+
+```bash
+npx create-nx-workspace@latest my-dms
+```
+
+Used once to create the NX workspace.
+
+---
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+Installs all project dependencies.
+
+---
+
+### Run Application
+
+```bash
+nx serve my-dms
+```
+
+Starts the Angular application.
+
+---
+
+### Build Application
+
+```bash
+nx build my-dms
+```
+
+Creates a production build.
+
+---
+
+### Generate Components
+
+```bash
+nx generate @nx/angular:component login
+```
+
+Creates new Angular components inside the workspace.
+
+---
+
+# ng vs nx
+
+### Angular Project
+
+```text
+Single App
+    ↓
+Use ng
+```
+
+### Enterprise Monorepo
+
+```text
+Multiple Apps
+Multiple Libraries
+Shared Code
+    ↓
+Use nx
+```
+
+---
+
+# Quick Revision
+
+```text
+npm → Install packages
+
+npx → Run package once
+
+ng → Angular CLI
+
+nx → Monorepo manager
+```
+
+---
+
+# In Our Project
+
+```text
+✅ npm  → Install dependencies
+
+✅ npx  → Create workspace
+
+✅ nx   → Build, serve, generate
+
+❌ ng   → Usually replaced by NX commands
+```
