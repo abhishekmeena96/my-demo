@@ -9,14 +9,12 @@ export const appRoutes: Route[] = [
     component: AppLoginComponent
   },
   {
-    path: 'home',
-    component: HomeComponent,
-    canActivate: [AuthGuard]   
-  },
-
-  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
   }
 ];
+
+
+
+

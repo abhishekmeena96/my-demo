@@ -1287,3 +1287,500 @@ export class AppComponent {
 
 _Part of: My DMS Project — Agent Knowledge Base_
 _Last updated: Login working, CORS fixed, Shell/Layout next_
+
+---
+
+---
+
+# Shell/layout component
+
+# Shell & Routing Setup — Complete Guide
+
+---
+
+## Overview
+
+This document covers:
+
+- How ACA routing is structured
+- What Shell concept is
+- How we implemented Shell in my-dms
+- All errors faced and fixes
+- Current status and next steps
+
+---
+
+## Part 1 — Understanding ACA Routing Structure
+
+### ACA has TWO separate routing areas:
+
+```
+alfresco-content-app/
+├── app/                          ← Main app
+│   └── src/
+│       └── app/
+│           └── app.routes.ts     ← only login route
+│
+└── projects/                     ← Feature libraries
+    └── aca-content/
+        └── src/
+            └── lib/
+                └── aca-content.routes.ts  ← ALL protected routes
+```
+
+### Why two separate areas?
+
+| Location                                     | Purpose                           |
+| -------------------------------------------- | --------------------------------- |
+| `app/app.routes.ts`                          | Public routes only (login)        |
+| `projects/aca-content/aca-content.routes.ts` | All protected routes inside Shell |
+
+---
+
+## Part 2 — ACA Routing Deep Study
+
+### `app.routes.ts` (ACA):
+
+```typescript
+export const APP_ROUTES = [
+  {
+    path: 'login',
+    component: AppLoginComponent,
+    data: {
+      title: 'APP.SIGN_IN',
+    },
+  },
+];
+```
+
+Only login route — no protected routes here.
+
+---
+
+### `aca-content.routes.ts` (ACA) — Key pattern:
+
+```typescript
+export const CONTENT_LAYOUT_ROUTES: Route[] = [
+  {
+    path: '',
+    canActivate: [ExtensionsDataLoaderGuard],
+    canActivateChild: [AuthGuard],    ← KEY: protects ALL children
+    children: [
+      {
+        path: '',
+        component: HomeComponent
+      },
+      {
+        path: 'personal-files',
+        children: [
+          {
+            path: '',
+            component: FilesComponent,
+            data: {
+              title: 'APP.BROWSE.PERSONAL.TITLE'
+            }
+          }
+        ]
+      },
+      // ... more routes
+      {
+        path: '**',
+        component: GenericErrorComponent  ← catch all
+      }
+    ]
+  }
+];
+```
+
+### Key findings from ACA routes:
+
+**1. `canActivateChild: [AuthGuard]`**
+
+- Applied on PARENT route
+- Automatically protects ALL child routes
+- No need to add AuthGuard on each route individually
+
+**2. Route pattern:**
+
+```typescript
+{
+  path: 'page-name',
+  children: [
+    {
+      path: '',
+      component: PageComponent,
+      data: {
+        title: 'PAGE.TITLE'
+      }
+    }
+  ]
+}
+```
+
+**3. Catch all route:**
+
+```typescript
+{
+  path: '**',
+  component: GenericErrorComponent
+}
+```
+
+---
+
+## Part 3 — What is Shell?
+
+### Shell = Main layout wrapper
+
+```
+┌─────────────────────────────────┐
+│           HEADER                │
+├──────────┬──────────────────────┤
+│          │                      │
+│ SIDEBAR  │   router-outlet      │
+│          │   (pages load here)  │
+│          │                      │
+└──────────┴──────────────────────┘
+```
+
+### Shell provides:
+
+- Header (top bar)
+- Sidebar navigation
+- Content area with `router-outlet`
+- AuthGuard on all protected routes
+- Session verification on every page load
+
+### ACA uses `ShellLayoutComponent` from ADF:
+
+```typescript
+import { ShellLayoutComponent } from '@alfresco/adf-core/shell';
+```
+
+This is an ADF package — already installed in our project. ✅
+
+### How ACA connects Shell to routes:
+
+```typescript
+// app.config.ts
+import { provideShellRoutes } from '@alfresco/adf-core/shell';
+
+provideShellRoutes(CONTENT_LAYOUT_ROUTES);
+```
+
+`provideShellRoutes` wraps ALL routes inside `ShellLayoutComponent` automatically.
+
+---
+
+## Part 4 — Implementation in my-dms
+
+### Step 1 — Created `shell.routes.ts`
+
+```
+apps/my-dms/src/app/shell.routes.ts
+```
+
+```typescript
+import { Route } from '@angular/router';
+import { AuthGuard } from '@alfresco/adf-core';
+import { HomeComponent } from './components/home/home.component';
+
+export const SHELL_ROUTES: Route[] = [
+  {
+    path: '',
+    canActivateChild: [AuthGuard],
+    children: [
+      {
+        path: '',
+        component: HomeComponent,
+      },
+      {
+        path: 'home',
+        component: HomeComponent,
+      },
+    ],
+  },
+];
+```
+
+**Why:**
+
+- `canActivateChild: [AuthGuard]` protects all children
+- Same pattern as ACA's `CONTENT_LAYOUT_ROUTES`
+- All future pages added here will be automatically protected
+
+---
+
+### Step 2 — Updated `app.routes.ts`
+
+```typescript
+import { Route } from '@angular/router';
+import { AppLoginComponent } from './components/login/login.component';
+
+export const appRoutes: Route[] = [
+  {
+    path: 'login',
+    component: AppLoginComponent,
+  },
+  {
+    path: '',
+    redirectTo: 'login',
+    pathMatch: 'full',
+  },
+];
+```
+
+**Why:**
+
+- Only login route here (public)
+- Protected routes moved to `shell.routes.ts`
+- Clean separation — public vs protected
+
+---
+
+### Step 3 — Updated `app.config.ts`
+
+```typescript
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter, withHashLocation } from '@angular/router';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideAppConfig, provideCoreAuth, provideI18N, AuthGuard } from '@alfresco/adf-core';
+import { SHELL_APP_SERVICE, SHELL_AUTH_TOKEN, provideShellRoutes } from '@alfresco/adf-core/shell';
+import { of } from 'rxjs';
+import { appRoutes } from './app.routes';
+import { SHELL_ROUTES } from './shell.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideAnimations(),
+    provideHttpClient(withInterceptorsFromDi()),
+    provideCoreAuth({ useHash: true }),
+    provideAppConfig(),
+    provideI18N({
+      assets: [['app', 'assets']],
+    }),
+    provideShellRoutes(SHELL_ROUTES),
+    provideRouter(appRoutes, withHashLocation()),
+    {
+      provide: SHELL_AUTH_TOKEN,
+      useValue: AuthGuard,
+    },
+    {
+      provide: SHELL_APP_SERVICE,
+      useValue: {
+        ready$: of(true),
+      },
+    },
+  ],
+};
+```
+
+---
+
+## Part 5 — Errors Faced & Fixes
+
+---
+
+### Error 1 — No provider for SHELL_AUTH_TOKEN
+
+**Error:**
+
+```
+NullInjectorError: No provider for InjectionToken SHELL_AUTH_TOKEN!
+```
+
+**Why:** `ShellLayoutComponent` needs `SHELL_AUTH_TOKEN` to know which guard to use.
+
+**Fix:**
+
+```typescript
+import { SHELL_AUTH_TOKEN } from '@alfresco/adf-core/shell';
+import { AuthGuard } from '@alfresco/adf-core';
+
+{
+  provide: SHELL_AUTH_TOKEN,
+  useValue: AuthGuard
+}
+```
+
+**ACA does same:**
+
+```typescript
+// ACA app.config.ts
+{
+  provide: SHELL_AUTH_TOKEN,
+  useValue: AuthGuard
+}
+```
+
+---
+
+### Error 2 — No provider for SHELL_APP_SERVICE
+
+**Error:**
+
+```
+NullInjectorError: No provider for InjectionToken SHELL_APP_SERVICE!
+```
+
+**Why:** `ShellLayoutComponent` needs `SHELL_APP_SERVICE` to know when app is ready.
+
+**ACA fix:**
+
+```typescript
+// ACA uses AppService from @alfresco/aca-shared
+{
+  provide: SHELL_APP_SERVICE,
+  useClass: AppService  ← ACA internal — not available to us
+}
+```
+
+**Our fix (simple version):**
+
+```typescript
+import { of } from 'rxjs';
+
+{
+  provide: SHELL_APP_SERVICE,
+  useValue: {
+    ready$: of(true)  ← tells Shell: app is always ready
+  }
+}
+```
+
+**Why `of(true)`:**
+
+- `ready$` is an Observable that Shell subscribes to
+- `of(true)` = immediately emits `true` = app is ready
+- ACA's `AppService` does more complex checks — we simplify for now
+
+---
+
+## Part 6 — ACA vs my-dms Comparison
+
+|                  | ACA                                          | my-dms                                                  |
+| ---------------- | -------------------------------------------- | ------------------------------------------------------- |
+| Public routes    | `app/app.routes.ts`                          | `app.routes.ts` ✅                                      |
+| Protected routes | `projects/aca-content/aca-content.routes.ts` | `shell.routes.ts` ✅                                    |
+| Shell provider   | `provideShellRoutes(CONTENT_LAYOUT_ROUTES)`  | `provideShellRoutes(SHELL_ROUTES)` ✅                   |
+| Auth token       | `SHELL_AUTH_TOKEN: AuthGuard`                | `SHELL_AUTH_TOKEN: AuthGuard` ✅                        |
+| App service      | `SHELL_APP_SERVICE: AppService`              | `SHELL_APP_SERVICE: { ready$: of(true) }` ⚠️ simplified |
+| Route protection | `canActivateChild: [AuthGuard]`              | `canActivateChild: [AuthGuard]` ✅                      |
+
+---
+
+## Part 7 — How Shell Solves Auth Persistence
+
+### Before Shell:
+
+```
+Server restart
+        ↓
+App loads
+        ↓
+Reads token from localStorage
+        ↓
+Token exists → goes to /home
+        ↓
+No backend verification ❌
+```
+
+### After Shell:
+
+```
+Server restart
+        ↓
+App loads
+        ↓
+Shell loads → canActivateChild: [AuthGuard]
+        ↓
+AuthGuard verifies token with backend
+        ↓
+Valid → show page ✅
+Invalid → redirect to /login ✅
+```
+
+---
+
+## Part 8 — Current File Structure
+
+```
+apps/my-dms/src/app/
+├── components/
+│   ├── login/
+│   │   ├── login.component.ts    ✅
+│   │   └── login.component.html  ✅
+│   └── home/
+│       ├── home.component.ts     ✅
+│       └── home.component.html   ✅
+├── shell.routes.ts               ✅ new
+├── app.routes.ts                 ✅ updated
+├── app.config.ts                 ✅ updated
+├── app.component.ts              ✅
+└── app.component.html            ✅
+```
+
+---
+
+## Part 9 — Current Status
+
+| Task                   | Status  |
+| ---------------------- | ------- |
+| Login page             | ✅      |
+| Backend connection     | ✅      |
+| Proxy configured       | ✅      |
+| Shell with AuthGuard   | ✅      |
+| Home inside Shell      | ✅      |
+| Auth persistence fixed | ✅      |
+| Sidenav layout         | ⬜ Next |
+| Header component       | ⬜ Next |
+| Sidebar navigation     | ⬜ Next |
+
+---
+
+## Part 10 — Next Steps
+
+**Next target: `adf-sidenav-layout`**
+
+```
+Study ACA sidenav implementation
+        ↓
+Find ShellLayoutComponent usage in ACA
+        ↓
+Understand header/sidebar/content areas
+        ↓
+Build in my-dms
+```
+
+**Files to study in ACA:**
+
+```
+projects/aca-content/src/lib/components/sidenav/
+```
+
+---
+
+## Context for Next Conversation:
+
+```
+Project: my-dms (ACA learning project)
+Stack: Angular 19, NX 22, Webpack, ADF 8.6
+
+Completed:
+✅ Login page working
+✅ Backend connection (proxy)
+✅ Shell with AuthGuard working
+✅ Home page inside Shell
+✅ Auth persistence fixed
+
+Next target:
+Add adf-sidenav-layout
+Study ACA sidenav component
+Build header + sidebar + content area
+```
+
+---
+
+_Part of: My DMS Project — Agent Knowledge Base_
+_Last updated: Shell working, sidenav next_
